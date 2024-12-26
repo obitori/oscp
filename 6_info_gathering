@@ -1,0 +1,4 @@
+whois <TARG_DOMAIN_OR_IP> [ -h <WHOIS_SERVER_IP ]
+
+dig -t any <TARG_DOMAIN> @<DNS_SERVER_IP
+
