@@ -1,4 +1,176 @@
-whois <TARG_DOMAIN_OR_IP> [ -h <WHOIS_SERVER_IP ]
+TARGET DOMAIN:  <TARG_DOMAIN>
+TARGET NETWORK:  <TARG_NET> # assumed to be xxx.xxx.xxx
+TARGET IP:      <TARG_IP>
+DNS_SERVER:     <DNS_SERVER> # domain or IP
 
-dig -t any <TARG_DOMAIN> @<DNS_SERVER_IP
+
+###########
+# PASSIVE #
+###########
+###########
+
+#######################
+# Domain & IP Records #
+#######################
+whois <TARG_DOMAIN> [ -h <WHOIS_SERVER_IP ]
+
+whois <TARG_IP>
+
+dig -t any <TARG_DOMAIN> @<DNS_SERVER
+
+################
+# Google Dorks #
+################
+
+## site & filetype specific search
+site: <TARG_DOMAIN> filetype:pdf
+
+## Exclude items with minus sign "-"
+site:<TARG_DOMAIN> -filetype:html
+
+## Search page title and body
+## "index of" found in HTML directory listings
+intitle: "Index of" "parent directory"
+
+####################
+# Online Reference #
+####################
+https://www.exploit-db.com/google-hacking-database
+
+################
+# Social Media #
+################
+
+## Search FB, LinkedIn, etc.
+
+#######################
+# Passive Recon Sites #
+#######################
+
+## netcraft ##
+Input domain and get report
+
+## Open Source Code sites
+## github, github gist, gitlab, sourceforge
+
+## github
+owner:<target> path:<search_term>
+
+## try gitrob and gitleaks
+./gitleaks-linux-amd64 -v -r=https://github.com/<target>
+
+#############
+# shodan.io #
+#############
+hostname:<targ_domain>
+
+#######################
+# securityheaders.com #
+#######################
+## TLS and HTTP security protocols 
+
+## securityheaders.com
+https://securityheaders.com/?q=<TARG_DOMAIN>&followRedirects=on
+
+## www.ssllabs.com
+https://www.ssllabs.com/ssltest/analyze.html?d=<targ_domain>
+
+
+##########
+# ACTIVE #
+##########
+##########
+
+########################
+## Domain Enumeration ##
+########################
+dig -t any <TARG_DOMAIN> @<DNS_SERVER
+
+host -t mx <TARGDOMAIN>
+
+cat "" > subdomains.txt
+cat >> subdomains.txt << EOF
+www
+ftp
+mail
+owa
+proxy
+router
+ssh
+admin
+beta
+fs1
+intranet
+mail2
+siem
+snmp
+syslog
+support
+test
+vpn
+EOF
+
+for ip in $(cat subdomains.txt); do echo $ip.<TARG_DOMAIN>; dig $ip.<TARG_DOMAIN>; done
+
+## dnsrecon with bruteforcing -t brt ##
+dnsrecon -d <TARG_DOMAIN> -D ~/subdomains.txt -t brt
+
+## dnsenum ##
+dnsenum <TARG_DOMAIN>
+
+## WIN: nslookup ##
+nslookup mail.megacorptwo.com
+nslookup -type=TXT info.<TARG_DOMAIN> <DNS_SERVER>
+
+
+####################
+## Reverse Lookup ##
+#################### 
+for ip in $(seq 200 254)' do host <TARGT_IPNET>.$ip; done | grep -v "not found"
+
+##########
+## nmap ##
+##########
+nc -nvv -w 1 -z 192.168.50.152 3388-3390
+-z == zero I/O.  no data sent
+-w == connection timeout
+
+nc -nv -u -z -w 1 192.168.50.149 120-123
+-u == udp
+
+### Measure nmap scan bandwidth ###
+sudo iptables -I INPUT 1 -s <TARG_IP> -j ACCEPT
+sudo iptables -I OUTPUT 1 <TARG_IP> -j ACCEPT
+sudo iptables -Z
+
+nmap <TARG_IP>
+
+sudo iptables -vn -L
+sudo iptables -Z
+
+### udp and tcp syn scan
+sudo nmap -sU -sS 192.168.50.149
+
+### network scan for up hosts ###
+nmap -sn <TARG_NET>.1-253
+
+## top 20 port with OS detect and script scanning and traceroute
+nmap -sT -A --top-ports=20 <TARG_NET>.1-253 -oG top-port-sweep.txt
+cat /usr/share/nmap/nmap-services
+-O os
+-sV banner grabbing
+
+## scripts
+nmap --script http-headers 192.168.50.6
+nmap --script-help http-headers
+
+## nmap book online ##
+## host discovery ##
+https://nmap.org/book/man-host-discovery.html
+
+## Win: Test-NetConnection ##
+test-NetConnection -port 445 <TARG_IP>
+
+## Win: Script to scan host for open ports ##
+1..1024 | % {echo ((New-Object Net.Sockets.TcpClient).Connect("192.168.50.151", $_)) "TCP port $_ is open"} 2>$null
 
