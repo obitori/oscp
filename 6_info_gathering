@@ -1,6 +1,7 @@
-TARGET DOMAIN:  <TARG_DOMAIN>
-TARGET NETWORK:  <TARG_NET> # assumed to be xxx.xxx.xxx
-TARGET IP:      <TARG_IP>
+TARGET DOMAIN:          <TARG_DOMAIN>
+TARGET NETWORK:         <TARG_NET> # assumed to be xxx.xxx.xxx
+TARGET IP:              <TARG_IP>
+TARGET NETBIOS NAME:    <TARG_NETBIOS_NAME>
 DNS_SERVER:     <DNS_SERVER> # domain or IP
 
 
@@ -16,7 +17,7 @@ whois <TARG_DOMAIN> [ -h <WHOIS_SERVER_IP ]
 
 whois <TARG_IP>
 
-dig -t any <TARG_DOMAIN> @<DNS_SERVER
+dig -t any <TARG_DOMAIN> @<DNS_SERVER>
 
 ################
 # Google Dorks #
@@ -81,9 +82,9 @@ https://www.ssllabs.com/ssltest/analyze.html?d=<targ_domain>
 ##########
 ##########
 
-########################
-## Domain Enumeration ##
-########################
+######################
+# Domain Enumeration #
+######################
 dig -t any <TARG_DOMAIN> @<DNS_SERVER
 
 host -t mx <TARGDOMAIN>
@@ -123,9 +124,9 @@ nslookup mail.megacorptwo.com
 nslookup -type=TXT info.<TARG_DOMAIN> <DNS_SERVER>
 
 
-####################
-## Reverse Lookup ##
-#################### 
+##################
+# Reverse Lookup #
+################## 
 for ip in $(seq 200 254)' do host <TARGT_IPNET>.$ip; done | grep -v "not found"
 
 ##########
@@ -174,3 +175,90 @@ test-NetConnection -port 445 <TARG_IP>
 ## Win: Script to scan host for open ports ##
 1..1024 | % {echo ((New-Object Net.Sockets.TcpClient).Connect("192.168.50.151", $_)) "TCP port $_ is open"} 2>$null
 
+###################
+# SMB Enumeration #
+###################
+nmap -v -p 139,445 -oA <TARG_IP>_nmap <TARG_IP>
+
+nbtscan -r <TARG_NET>.0/24
+-r for udp/137 source port
+
+ls -1 /usr/share/nmap/scripts/smb*
+
+nmap -v -p 139,445 --script smb-os-discovery <TARG_IP>
+
+## Win: LOLBIN ##
+net view \\<TARG_NETBIOS_NAME> /all
+
+####################
+# SMTP Enumeration #
+####################
+
+for ip in $(seq 200 254)' do nc -nvz <TARGT_IPNET>.$ip 25; done | grep -v "not found"
+
+nc -nv <TARG_IP> 25
+VRFY root
+VRFY IDONTEXIST
+quit
+
+## Python SMTP VRFY Script ##
+#!/usr/bin/python
+
+import socket
+import sys
+
+if len(sys.argv) != 3:
+        print("Usage: vrfy.py <username> <target_ip>")
+        sys.exit(0)
+
+# Create a Socket
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Connect to the Server
+ip = sys.argv[2]
+connect = s.connect((ip,25))
+
+# Receive the banner
+banner = s.recv(1024)
+
+print(banner)
+
+# VRFY a user
+user = (sys.argv[1]).encode()
+s.send(b'VRFY ' + user + b'\r\n')
+result = s.recv(1024)
+
+print(result)
+
+# Close the socket
+s.close()
+
+kali@kali:~/Desktop$ python3 smtp.py root <TARG_IP>
+
+## Win: SMTP enumeration ##
+Test-NetConnection -Port 25 192.168.50.8
+## install telnetclient or copy over
+dism /online /Enable-Feature /FeatureName:TelnetClient
+telnet 192.168.50.8 25
+
+####################
+# SNMP Enumeration #
+####################
+sudo nmap -sU --open -p 161 <TARG_NET>.1-254 -oA <TARG_NET>_snmp.txt
+
+echo public > community
+echo private >> community
+echo manager >> community
+for ip in $(seq 1 254); do echo <TARG_NET>.$ip; done > ips
+
+onesixtyone -c community -i ips
+
+snmpwalk -c public -v1 -t 10 <TARG_IP>
+## list windows users
+snmpwalk -c public -v1 <TARG_IP> 1.3.6.1.4.1.77.1.2.25 # user list
+## list processes
+snmpwalk -c public -v1 <TARG_IP> 1.3.6.1.2.1.25.4.2.1.2
+## installed software
+snmpwalk -c public -v1 <TARG_IP> 1.3.6.1.2.1.25.6.3.1.2
+## open ports
+snmpwalk -c public -v1 <TARG_IP> 1.3.6.1.2.1.6.13.1.3
